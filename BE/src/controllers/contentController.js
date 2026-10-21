@@ -198,11 +198,19 @@ export const updateContent = async (req, res, next) => {
       [contentId, userId]
     );
 
-    if (contents.length === 0) {
+    const currentContent = contents[0];
+
+    if (!currentContent) {
       return sendResponse(res, 404, false, "Content not found");
     }
 
-    const currentContent = contents[0];
+    if (role === 'editor') {
+      // Editor cuma bisa ubah dari 'editing' ke 'review'
+      if (status !== 'review' || currentStatus !== 'editing') {
+        return sendResponse(res, 403, false, 'Editors can only submit reviews while in edit mode');
+      }
+    }
+
     const {
       channel_id,
       title,
@@ -264,7 +272,7 @@ export const updateContent = async (req, res, next) => {
     let newPublishedUrl = published_url !== undefined ? published_url : currentContent.published_url;
     let newPublishedDate = published_date !== undefined ? published_date : currentContent.published_date;
 
-    if (targetStatus === "published") {
+    if (role === 'creator' && targetStatus === "published") {
       if (!newPublishedUrl || typeof newPublishedUrl !== "string" || newPublishedUrl.trim() === "") {
         return sendResponse(
           res,
